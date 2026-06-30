@@ -1,0 +1,298 @@
+================================================================================
+ CLAW3D — DETAIL PROGRAM LENGKAP
+ 3D AI Agent Visualization & Interaction Platform (v0.1.4)
+================================================================================
+
+[1] DESKRIPSI UMUM
+──────────────────
+Claw3D adalah aplikasi open-source Next.js untuk memvisualisasikan dan
+berinteraksi dengan AI agents yang dijalankan oleh OpenClaw.
+
+- Stack: Next.js 16 + React 19 + Three.js + TypeScript + TailwindCSS
+- Bukan runtime AI — hanya layer visual & proxy di atas OpenClaw Gateway
+- Menyediakan: workspace agents, 3D office, builder, studio proxy
+- Lisensi: MIT
+
+Visi: Membangun "kota 3D" di mana AI agents beroperasi sebagai entitas
+visual yang bisa diobservasi, diinspeksi, dan diajak berinteraksi.
+
+[2] ARSITEKTUR 4 BAGIAN
+────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│  User  →  Browser UI (Next.js)                              │
+│            ↓ HTTP          ↓ WebSocket                      │
+│       Studio API Routes   Studio WS Proxy (/api/gateway/ws) │
+│            ↓                    ↓                           │
+│       Local Filesystem    OpenClaw Gateway (upstream)        │
+└─────────────────────────────────────────────────────────────┘
+
+1. Browser UI       → Next.js client: agents workspace, office, builder
+2. Studio API Routes → Server routes: local settings, file ops
+3. Studio WS Proxy   → Node server: proxy WS ke upstream OpenClaw Gateway
+4. OpenClaw Gateway   → Source of truth: agents, sessions, config, runtime
+
+[3] STRUKTUR FOLDER UTAMA
+─────────────────────────
+  src/app/           → Next.js App Router (routes + API endpoints)
+  src/features/      → Feature modules (vertical slices)
+    agents/          → Fleet UI, chat, approvals, runtime events
+    office/          → Office screens, builder, standup, voice
+    retro-office/    → 3D scene (React Three Fiber), navigasi, aktor
+    company-builder/ → Company builder feature
+    onboarding/      → Onboarding flow
+    spotify-jukebox/ → Spotify integration
+  src/lib/           → Shared domain logic & adapters
+    gateway/         → GatewayClient, agent config, exec approvals
+    office/          → Event triggers, desk directives, schema
+    studio/          → Local settings persistence
+    agent-state/     → Agent state management
+    skills/          → Skills system integration
+    security/        → Security utilities
+    ssh/             → SSH helpers
+    cron/            → Cron job utilities
+    voiceReply/      → Voice reply generation
+  src/components/    → Shared UI components (theme toggle, dll)
+  src/hooks/         → Custom React hooks (voice, studio prefs)
+  server/            → Custom Node.js server & adapters
+  tests/             → Unit tests (Vitest) & E2E (Playwright)
+  scripts/           → Utility scripts (setup, sync, doctor)
+  public/            → Static assets
+  docs/              → Documentation
+
+[4] SERVER LAYER (server/)
+──────────────────────────
+  index.js                    → Entry point: boot Next.js + HTTP/HTTPS server
+  gateway-proxy.js            → WebSocket proxy ke upstream OpenClaw Gateway
+  studio-settings.js          → Load local Studio gateway settings
+  access-gate.js              → Token-based access control
+  network-policy.js           → Host validation & public host safety
+  demo-gateway-adapter.js     → Demo mode (tanpa OpenClaw/Hermes)
+  hermes-gateway-adapter.js   → Hermes Agent adapter (alternatif OpenClaw)
+
+Server flow:
+1. Load env & resolve hosts/port
+2. Assert public host security (token required jika public)
+3. Create Next.js app + HTTP/HTTPS server
+4. Setup WebSocket proxy (/api/gateway/ws → upstream gateway)
+5. Access gate: token verification untuk HTTP & WS
+
+[5] GATEWAY CLIENT (src/lib/gateway/)
+─────────────────────────────────────
+  GatewayClient.ts          → Browser-side WS client (42KB)
+    - Connect/reconnect ke Studio proxy
+    - Send/receive JSON RPC frames
+    - Runtime event subscription
+    - Session key management
+  agentConfig.ts            → Agent configuration CRUD
+  agentFiles.ts             → Agent file read/write via gateway
+  execApprovals.ts          → Execution approval flows
+  models.ts                 → Model listing
+  nodeGatewayClient.ts      → Server-side gateway client
+  gatewayReloadMode.ts      → Gateway reload mode management
+
+RPC Methods tersedia:
+  agents.*     → list, create, update, delete
+  chat.*       → send, abort, history
+  sessions.*   → list, preview, patch, reset
+  config.*     → get, set/patch
+  skills.*     → status, install, update, bins
+  exec.*       → approvals management
+  models.list  → available AI models
+
+[6] AGENTS WORKSPACE (src/features/agents/)
+───────────────────────────────────────────
+Fitur utama:
+  - Fleet UI: daftar semua agents
+  - Chat interface: percakapan dengan agent
+  - Approvals: eksekusi yang butuh persetujuan user
+  - Runtime monitoring: streaming event dari gateway
+  - Agent creation: wizard buat agent baru
+  - Settings: behavior, capabilities, skills per agent
+
+Subdirektori:
+  components/    → UI components (chat, agent list, settings panels)
+  hooks/         → React hooks untuk agent state
+  state/         → State management & runtime event handling
+    gatewayRuntimeEventHandler.ts  → Orchestrator event routing
+    runtimeChatEventWorkflow.ts    → Chat stream planning
+    runtimeAgentEventWorkflow.ts   → Agent lifecycle planning
+    runtimeTerminalWorkflow.ts     → Terminal/closed-run handling
+    runtimeEventCoordinatorWorkflow.ts → Reducer/effect bridge
+    transcript.ts                  → Transcript model & history merge
+  operations/    → Side-effect orchestration
+    historySyncOperation.ts → Canonical history reconciliation
+  screens/       → Screen-level compositions
+  approvals/     → Approval UI flows
+  creation/      → Agent creation wizard
+
+[7] 3D OFFICE (src/features/retro-office/)
+──────────────────────────────────────────
+Powered by: React Three Fiber + Three.js
+
+  RetroOffice3D.tsx (273KB) → Main 3D scene renderer
+    - Renders agents sebagai aktor 3D bergerak
+    - Room-based spatial layout
+    - Derived animation dari runtime events
+    - Procedural furniture geometry (bukan 3D model bundled)
+
+  core/
+    navigation.ts      → Nav grid, pathfinding, route helpers
+    furnitureDefaults.ts → Default room/object layout
+    geometry.ts        → Object sizing, bounds, snapping
+    navigation/
+      gymRoute.ts         → Gym room routing
+      serverRoomRoute.ts  → Server room routing
+      qaLabRoute.ts       → QA lab routing
+
+  objects/
+    furniture.tsx   → Desk, chair, shelf renders
+    primitives.tsx  → Walls, floors, basic shapes
+    machines.tsx    → Server rack, monitor objects
+
+  systems/         → Scene systems (lighting, camera, etc)
+  overlays/        → 2D overlays on 3D scene
+  scene/           → Scene setup & configuration
+
+Motion System (derived, bukan imperative):
+  1. Runtime events masuk dari gateway
+  2. reduceOfficeAnimationTriggerEvent() → record latches
+  3. reconcileOfficeAnimationTriggerState() → derive durable holds
+  4. buildOfficeAnimationState() → shape untuk scene
+  5. RetroOffice3D → render destinations, paths, overlays
+
+[8] OFFICE BUILDER (src/features/office/)
+─────────────────────────────────────────
+Powered by: Phaser (2D game engine)
+Terpisah dari 3D retro office — dua runtime berbeda!
+
+  screens/OfficeScreen.tsx     → Composition root
+  components/
+    OfficeBuilderPanel.tsx     → Builder UI panel
+    OfficePhaserCanvas.tsx     → Phaser canvas wrapper
+  phaser/
+    OfficeBuilderScene.ts      → Builder scene
+    OfficeViewerScene.ts       → Viewer scene
+  state/                       → Office state management
+  hooks/                       → Office-specific hooks
+  tasks/                       → Task management UI
+
+[9] OFFICE INTENT & DESK SYSTEM
+───────────────────────────────
+src/lib/office/
+  deskDirectives.ts   → Parse natural language → office intents
+    - resolveOfficeIntentSnapshot() → unified intent parsing
+    - Categories: desk hold/release, GitHub review, gym, QA lab, standup
+  eventTriggers.ts    → Derive animation triggers dari runtime events
+  schema.ts           → OfficeMap schema untuk builder
+
+Desk Assignment:
+  - Disimpan di Studio settings (bukan inferred)
+  - OfficeScreen load & persist deskAssignmentByDeskUid
+  - RetroOffice3D resolve assigned desk indexes
+
+[10] SKILLS SYSTEM
+──────────────────
+Skills = unit kemampuan reusable untuk agents (format AgentSkills.io)
+
+Struktur skill:
+  - SKILL.md (frontmatter: name, description, metadata)
+  - Gating: bins, env, config, OS requirements
+  - Eligibility: computed setiap load/snapshot
+
+6 sumber skill (prioritas rendah → tinggi):
+  1. Extra dirs / plugin skills
+  2. Bundled skills
+  3. Managed global (~/.openclaw/skills)
+  4. Personal agents (~/.agents/skills)
+  5. Project agents (<workspace>/.agents/skills)
+  6. Workspace skills (<workspace>/skills)
+
+Gateway API: skills.status, skills.install, skills.update, skills.bins
+
+[11] API ROUTES (src/app/api/)
+──────────────────────────────
+  studio/                → Load & patch Studio settings
+  gateway/
+    media/               → Gateway-backed media access
+    agent-state/         → Agent state operations
+    skills/remove/       → Skill removal flow
+  office/
+    route.ts             → Office layout persistence
+    publish/             → Publish office maps
+    github/              → GitHub flow helpers
+    browser-preview/     → Browser preview helpers
+    presence/            → Office presence state
+    voice/transcribe/    → Voice transcription
+    voice/reply/         → Voice reply generation
+    standup/config/      → Standup config
+    standup/meeting/     → Standup meeting state
+    standup/run/         → Standup run execution
+  health/                → Health check
+  files/                 → File operations
+  path-suggestions/      → Filesystem path suggestions
+  runtime/               → Runtime helpers
+  task-store/            → Task store operations
+
+[12] CUSTOM HOOKS (src/hooks/)
+──────────────────────────────
+  useVoiceRecorder.ts                    → Rekam suara user
+  useVoiceReplyPlayback.ts               → Playback voice reply
+  useFinalizedAssistantReplyListener.ts  → Listen complete AI replies
+  useStudioOfficePreference.ts           → Office preference settings
+  useStudioVoiceRepliesPreference.ts     → Voice reply settings
+
+[13] KONFIGURASI (.env)
+───────────────────────
+  NEXT_PUBLIC_GATEWAY_URL  → Gateway WS URL (build-time)
+  CLAW3D_GATEWAY_URL       → Runtime gateway URL (runtime)
+  CLAW3D_GATEWAY_TOKEN     → Gateway auth token
+  CLAW3D_GATEWAY_ADAPTER_TYPE → openclaw | hermes | demo | custom
+  PORT/HOST                → Server port (3000) & hostname
+  STUDIO_ACCESS_TOKEN      → Token untuk akses publik/remote
+  ELEVENLABS_API_KEY       → Voice features (optional)
+  DEBUG                    → Debug UI mode
+
+[14] DEPENDENCIES UTAMA
+───────────────────────
+  next (16.1.7), react (19.2.3), three (0.183), phaser (3.90)
+  @react-three/fiber, @react-three/drei (React Three.js integration)
+  ws (8.18), tailwindcss (4), lucide-react, react-markdown, canvas-confetti
+
+[15] SCRIPTS & COMMANDS
+───────────────────────
+  npm run dev              → Dev server (node server/index.js --dev)
+  npm run dev:https        → Dev server dengan HTTPS
+  npm run build            → Production build
+  npm run start            → Production server
+  npm run demo-gateway     → Jalankan demo gateway (tanpa OpenClaw)
+  npm run hermes-adapter   → Jalankan Hermes adapter
+  npm run test             → Unit tests (Vitest)
+  npm run e2e              → E2E tests (Playwright)
+  npm run lint             → ESLint
+  npm run typecheck        → TypeScript check
+  npm run studio:setup     → Setup Studio prerequisites
+  npm run doctor           → Diagnosa environment
+
+[16] DEMO GATEWAY (server/demo-gateway-adapter.js)
+──────────────────────────────────────────────────
+Untuk testing tanpa OpenClaw:
+  - HTTP + WebSocket server di port 18789
+  - 3 default agents: Orchestrator, Researcher, Builder
+  - Mock chat flow: role-specific replies, token-by-token streaming
+  - Agent CRUD, session management, file I/O
+  - Methods: agents.*, chat.*, sessions.*, config.*, skills.*, models.*
+
+[17] SECURITY
+─────────────
+  - Gateway tokens tidak di-store di client-side storage
+  - Browser tidak langsung connect ke upstream gateway (via proxy)
+  - Access gate: token verification untuk public deployments
+  - Network policy: host validation
+  - Skill removal: bounded ke allowed roots, verified skill dirs
+  - Secret values tidak di-expose di status surfaces
+
+================================================================================
+ Stack: Next.js 16 | React 19 | Three.js | Phaser | TypeScript | TailwindCSS
+ Architecture: Gateway-first, derived state, feature-first organization
+ Runtime: OpenClaw Gateway (source of truth) ← Studio Proxy ← Browser
+================================================================================

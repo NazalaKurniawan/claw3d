@@ -1,0 +1,45 @@
+================================================================================
+ PETA FITUR CLAW3D: AUDIT INFRASTRUKTUR VS VISUAL
+================================================================================
+
+Keterangan:
+[✓] = Tersedia dan berjalan dengan baik.
+[!] = Belum ada visualisasinya (hanya sebatas data/logic) atau belum terhubung.
+
+| Kategori Fitur | 1. Core Infrastructure (Data & Logic) | 2. Visual / UX Layers (UI & 3D Render) |
+|----------------|---------------------------------------|----------------------------------------|
+| **AGENT INTERACTION** | | |
+| - Chat | [✓] WebSocket streaming, RPC methods | [✓] Panel chat UI per agent |
+| - Approvals | [✓] Gateway exec approvals logic | [✓] Approval UI overlay |
+| - Voice | [✓] Audio recording & ElevenLabs transkrip| [✓] Tombol Voice & audio playback |
+|----------------|---------------------------------------|----------------------------------------|
+| **OFFICE VISUALIZATION** | | |
+| - 3D Movement & Pathfinding | [✓] Nav grid, rute (gym, lab, desk) | [✓] Animasi interpolasi agen (berjalan mulus) |
+| - Furniture Rendering | [✓] Tata letak (deskAssignment) | [✓] Model mesh 3D (meja, server, dsb) |
+|----------------|---------------------------------------|----------------------------------------|
+| **AGENT INTELLIGENCE VISUALS**| | |
+| - Action Indicator (Ikon Tugas) | [✓] Gateway menerima task events | [!] BELUM ADA (Tidak ada ikon spesifik) |
+| - Status Bubbles (Billboard) | [✓] State `status` ("working", "error") | [!] BELUM ADA (Hanya warna mesh berubah) |
+| - Pathfinding Animation | [✓] Rute logis dari A ke B | [✓] Agen terlihat berjalan di 3D scene |
+|----------------|---------------------------------------|----------------------------------------|
+| **OFFICE MANAGEMENT** | | |
+| - Office Builder (2D Map) | [✓] Skema map disimpan di Studio | [✓] Canvas interaktif dengan Phaser |
+| - Desk Assignment | [✓] Sistem booking meja per agent | [✓] Agen otomatis mencari mejanya |
+| - Standup Meetings | [✓] API standup/run & config | [✓] UI untuk eksekusi meeting |
+
+---
+
+REKOMENDASI TITIK AWAL (ENTRY POINT) UNTUK FITUR [!]
+
+1. [!] Action Indicator (Ikon Tugas Visual)
+   - Konsep: Menampilkan ikon di atas agen (misal: 💻 untuk coding, 🔍 untuk research) berdasarkan tugas spesifik.
+   - File Modifikasi 1: `src/features/agents/state/gatewayRuntimeEventHandler.ts`
+     Tugas: Ekstrak tipe tugas/event dari `OpenClaw` dan simpan sebagai `currentAction` string.
+   - File Modifikasi 2: `src/lib/office/eventTriggers.ts`
+     Tugas: Teruskan state `currentAction` ini ke sistem animasi kantor.
+
+2. [!] Status Bubbles (Billboard UI 3D)
+   - Konsep: Menggantung UI 2D kecil di atas model agen 3D untuk menampilkan status text atau icon.
+   - File Pembuatan: Buat `src/features/retro-office/overlays/AgentStatusBubble.tsx` menggunakan komponen `<Html>` dari `@react-three/drei`.
+   - File Modifikasi: `src/features/retro-office/RetroOffice3D.tsx`
+     Tugas: Panggil komponen `<AgentStatusBubble />` di dalam block `<group>` setiap model agen, dan suplai prop dari `agent.status` atau `agent.currentAction`.
