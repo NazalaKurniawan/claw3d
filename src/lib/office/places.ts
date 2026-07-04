@@ -121,6 +121,18 @@ export const DEFAULT_SKILL_TRIGGER_FALLBACKS_BY_SKILL_KEY: Record<
     movementTarget: "jukebox",
     skipIfAlreadyThere: true,
   },
+  gym: {
+    anyPhrases: [
+      "pergi ke gym",
+      "go to the gym",
+      "workout",
+      "olahraga",
+      "exercise",
+      "gym"
+    ],
+    movementTarget: "gym",
+    skipIfAlreadyThere: true,
+  },
 };
 
 export const buildOfficeSkillTriggerHoldMaps = (

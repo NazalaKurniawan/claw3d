@@ -1117,10 +1117,12 @@ function useAgentTick(
           ns.qaLabStage = undefined;
           ns.qaLabStationType = undefined;
           ns.workoutStyle = undefined;
+          const distToTarget = Math.hypot(existing.x - meetingTarget.x, existing.y - meetingTarget.y);
           const targetChanged =
             existing.targetX !== meetingTarget.x ||
             existing.targetY !== meetingTarget.y ||
-            existing.interactionTarget !== "meeting_room";
+            existing.interactionTarget !== "meeting_room" ||
+            (existing.path?.length === 0 && distToTarget > 15);
           ns.targetX = meetingTarget.x;
           ns.targetY = meetingTarget.y;
           if (targetChanged) {
@@ -1366,7 +1368,11 @@ function useAgentTick(
               ? "standing"
               : "walking";
           ns.facing = phoneBoothRoute.facing;
-        } else if (effectiveStatus === "working" && deskPos) {
+        } else if (
+          effectiveStatus === "working" &&
+          deskPos &&
+          !(existing.pingPongUntil !== undefined && now < existing.pingPongUntil)
+        ) {
           ns.pingPongUntil = undefined;
           ns.pingPongTargetX = undefined;
           ns.pingPongTargetY = undefined;
@@ -1394,7 +1400,7 @@ function useAgentTick(
             Math.hypot(existing.x - deskPos.x, existing.y - deskPos.y) < 15
               ? "sitting"
               : "walking";
-        } else if (effectiveStatus === "working") {
+        } else if (effectiveStatus === "working" && !(existing.pingPongUntil !== undefined && now < existing.pingPongUntil)) {
           ns.pingPongUntil = undefined;
           ns.pingPongTargetX = undefined;
           ns.pingPongTargetY = undefined;
@@ -2069,7 +2075,7 @@ function useAgentTick(
           } else {
             // New Idea 9: away state — if idle for > AWAY_THRESHOLD_MS, send to nearest couch.
             const lastSeen = lastSeenByAgentId[agent.id] ?? 0;
-            const isAway = lastSeen > 0 && now - lastSeen > AWAY_THRESHOLD_MS;
+            const isAway = lastSeen > 0 ? now - lastSeen > AWAY_THRESHOLD_MS : true;
             if (isAway && agent.state !== "away") {
               if (awayFurniture.length > 0) {
                 const f =

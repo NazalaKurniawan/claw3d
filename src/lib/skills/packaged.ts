@@ -424,6 +424,50 @@ soundclaw.previous(): void
 6. Agent reports back what was played or linked
 `;
 
+// Keep this string synchronized with assets/skills/gym/SKILL.md.
+const GYM_SKILL_MD = `---
+name: gym
+description: Go to the gym to workout or take a break.
+metadata: {"openclaw":{"skillKey":"gym"}}
+---
+
+# Gym Workout
+
+Use this skill when the user asks you to go to the gym, workout, exercise, or take a break at the gym.
+
+## Trigger
+
+\`\`\`json
+{
+  "activation": {
+    "anyPhrases": [
+      "pergi ke gym",
+      "go to the gym",
+      "workout",
+      "olahraga",
+      "exercise",
+      "gym"
+    ]
+  },
+  "movement": {
+    "target": "gym",
+    "skipIfAlreadyThere": true
+  }
+}
+\`\`\`
+
+When this skill is activated, the agent should walk to the gym in the office.
+
+- Treat requests from any channel as valid triggers for the gym.
+- The physical behavior for this skill is: go to the gym, then perform workout animations.
+- If the agent is already at the gym, continue without adding extra movement narration.
+
+## Workflow
+
+1. Acknowledge the user's request.
+2. The agent will physically walk to the gym in the UI.
+`;
+
 const PACKAGED_SKILL_FILES: Record<string, PackagedSkillFile[]> = {
   "todo-board": [
     {
@@ -449,6 +493,12 @@ const PACKAGED_SKILL_FILES: Record<string, PackagedSkillFile[]> = {
     {
       relativePath: "SKILL.md",
       content: SOUNDCLAW_SKILL_MD,
+    },
+  ],
+  gym: [
+    {
+      relativePath: "SKILL.md",
+      content: GYM_SKILL_MD,
     },
   ],
 };
